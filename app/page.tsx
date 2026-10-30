@@ -47,15 +47,21 @@ export default function Home() {
   const [pageNumber, setPageNumber] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [recognizing, setRecognizing] = useState(false);
+  const [requestError, setRequestError] = useState("");
+  const [responseData, setResponseData] = useState<unknown>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pdfRef = useRef<PDFDocumentProxy | null>(null);
   const pdfTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
   const imageUrlRef = useRef<string | null>(null);
   const selectionRef = useRef(0);
+  const requestRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
       selectionRef.current += 1;
+      abortRef.current?.abort();
       if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
       void pdfTaskRef.current?.destroy();
     };
@@ -107,6 +113,12 @@ export default function Home() {
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     const selection = ++selectionRef.current;
+    requestRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setRecognizing(false);
+    setRequestError("");
+    setResponseData(null);
     setSource(null);
     setPageCount(0);
     setPageNumber(1);
@@ -180,6 +192,53 @@ export default function Home() {
     }
   }
 
+  async function handleRecognize() {
+    if (!source || loading || abortRef.current) return;
+    const request = ++requestRef.current;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setRecognizing(true);
+    setRequestError("");
+    setResponseData(null);
+    const form = new FormData();
+    form.append("file", source.file);
+    form.append("page_number", String(pageNumber));
+
+    try {
+      const response = await fetch("/api/recognize", {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
+      let data: unknown;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(response.status === 413
+          ? "Файл больше 3 МБ. Выберите файл меньшего размера."
+          : "Сервер вернул неожиданный ответ. Попробуйте позже.");
+      }
+      if (request !== requestRef.current) return;
+      if (!response.ok) {
+        const message = typeof data === "object" && data !== null && "error" in data && typeof data.error === "string"
+          ? data.error
+          : "Не удалось распознать страницу. Попробуйте позже.";
+        throw new Error(message);
+      }
+      setResponseData(data);
+    } catch (cause) {
+      if (request !== requestRef.current || controller.signal.aborted) return;
+      setRequestError(cause instanceof TypeError
+        ? "Сетевая ошибка. Попробуйте позже."
+        : cause instanceof Error ? cause.message : "Не удалось выполнить запрос. Попробуйте позже.");
+    } finally {
+      if (request === requestRef.current) {
+        abortRef.current = null;
+        setRecognizing(false);
+      }
+    }
+  }
+
   return (
     <main className="page-shell">
       <header className="hero">
@@ -225,6 +284,12 @@ export default function Home() {
                 id="page-number"
                 value={pageNumber}
                 onChange={(event) => {
+                  requestRef.current += 1;
+                  abortRef.current?.abort();
+                  abortRef.current = null;
+                  setRecognizing(false);
+                  setRequestError("");
+                  setResponseData(null);
                   setError("");
                   setPageNumber(Number(event.target.value));
                 }}
@@ -244,6 +309,15 @@ export default function Home() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={source.previewUrl} alt={`Предпросмотр файла ${source.file.name}`} />
             )}
+          </div>
+          <div className="recognize-action">
+            <p>Выбранная страница будет отправлена в OpenAI. Запрос может тарифицироваться провайдером.</p>
+            <button type="button" onClick={handleRecognize} disabled={recognizing || loading}>
+              {recognizing ? "Распознаём страницу…" : "Распознать страницу"}
+            </button>
+            {recognizing && <p role="status">Запрос выполняется. Это может занять некоторое время.</p>}
+            {requestError && <p className="error" role="alert">{requestError}</p>}
+            {responseData !== null && <pre className="raw-result">{JSON.stringify(responseData, null, 2)}</pre>}
           </div>
         </section>
       )}

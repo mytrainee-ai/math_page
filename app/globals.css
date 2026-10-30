@@ -32,6 +32,13 @@ h1 { margin: 0; font-size: clamp(32px, 5vw, 52px); line-height: 1.08; letter-spa
 .page-picker span { color: #626b63; }
 .preview-frame { display: flex; justify-content: center; align-items: flex-start; min-height: 240px; padding: 18px; overflow: auto; background: #f1f2ef; border: 1px solid #e3e7e0; border-radius: 10px; }
 .preview-frame img, .preview-frame canvas { display: block; max-width: 100%; height: auto; }
+.recognize-action { margin-top: 24px; padding-top: 22px; border-top: 1px solid #e3e7e0; }
+.recognize-action > p:first-child { margin: 0 0 16px; color: #626b63; font-size: 14px; line-height: 1.5; }
+.recognize-action button { min-height: 46px; padding: 10px 20px; border: 0; border-radius: 9px; background: #2f6240; color: white; font-weight: 700; cursor: pointer; }
+.recognize-action button:hover:not(:disabled) { background: #244d32; }
+.recognize-action button:disabled { opacity: .65; cursor: wait; }
+.recognize-action > p[role="status"] { color: #526357; }
+.raw-result { max-height: 420px; margin: 20px 0 0; padding: 18px; overflow: auto; background: #f1f2ef; border-radius: 8px; font-size: 12px; line-height: 1.5; }
 
 @media (max-width: 600px) {
   .page-shell { padding: 36px 16px 64px; }
