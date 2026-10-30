@@ -38,7 +38,28 @@ h1 { margin: 0; font-size: clamp(32px, 5vw, 52px); line-height: 1.08; letter-spa
 .recognize-action button:hover:not(:disabled) { background: #244d32; }
 .recognize-action button:disabled { opacity: .65; cursor: wait; }
 .recognize-action > p[role="status"] { color: #526357; }
-.raw-result { max-height: 420px; margin: 20px 0 0; padding: 18px; overflow: auto; background: #f1f2ef; border-radius: 8px; font-size: 12px; line-height: 1.5; }
+.result-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid #e3e7e0; }
+.result-tabs, .download-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.result-tabs button, .download-actions button { padding: 10px 14px; border: 0; background: transparent; color: #3c5141; cursor: pointer; }
+.result-tabs button { border-bottom: 3px solid transparent; font-weight: 700; }
+.result-tabs button[aria-selected="true"] { border-bottom-color: #2f6240; color: #202420; }
+.result-tabs button:hover, .download-actions button:hover { color: #1f4f2e; }
+.download-actions button { border: 1px solid #c7d5c9; border-radius: 7px; font-weight: 600; }
+.result-content { min-width: 0; padding-top: 22px; }
+.element-list { display: grid; gap: 12px; }
+.element { padding: 18px 20px; border: 1px solid #e3e7e0; border-radius: 9px; }
+.element-meta { display: flex; justify-content: space-between; gap: 12px; color: #52745b; font-size: 13px; font-weight: 700; }
+.element-text { margin: 14px 0 0; white-space: pre-wrap; line-height: 1.6; }
+.latex-block { display: grid; gap: 6px; margin-top: 14px; }
+.latex-block span { color: #626b63; font-size: 12px; }
+.latex-block code { display: block; padding: 11px 13px; overflow-x: auto; border-radius: 6px; background: #f1f2ef; font-size: 15px; }
+.element-description { margin: 14px 0 0; color: #626b63; font-size: 14px; line-height: 1.5; }
+.table-scroll { max-width: 100%; margin-top: 14px; overflow-x: auto; }
+.table-scroll table { border-collapse: collapse; min-width: 260px; }
+.table-scroll th, .table-scroll td { padding: 8px 16px; border: 1px solid #cbd4cb; text-align: left; }
+.table-scroll th { background: #edf2ed; }
+.code-view { max-height: 580px; margin: 0; padding: 20px; overflow: auto; border-radius: 8px; background: #f1f2ef; font-size: 13px; line-height: 1.55; }
+.usage { margin: 18px 0 0; color: #626b63; font-size: 13px; }
 
 @media (max-width: 600px) {
   .page-shell { padding: 36px 16px 64px; }

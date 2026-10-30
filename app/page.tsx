@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+import RecognitionResult, { isRecognitionResponse, type RecognitionResponse } from "./recognition-result";
 
 const MAX_FILE_BYTES = 3 * 1024 * 1024;
 const MAX_PDF_PAGES = 100;
@@ -49,7 +50,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [recognizing, setRecognizing] = useState(false);
   const [requestError, setRequestError] = useState("");
-  const [responseData, setResponseData] = useState<unknown>(null);
+  const [responseData, setResponseData] = useState<RecognitionResponse | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pdfRef = useRef<PDFDocumentProxy | null>(null);
   const pdfTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
@@ -225,6 +226,9 @@ export default function Home() {
           : "Не удалось распознать страницу. Попробуйте позже.";
         throw new Error(message);
       }
+      if (!isRecognitionResponse(data)) {
+        throw new Error("Сервер вернул неполный результат распознавания.");
+      }
       setResponseData(data);
     } catch (cause) {
       if (request !== requestRef.current || controller.signal.aborted) return;
@@ -317,10 +321,10 @@ export default function Home() {
             </button>
             {recognizing && <p role="status">Запрос выполняется. Это может занять некоторое время.</p>}
             {requestError && <p className="error" role="alert">{requestError}</p>}
-            {responseData !== null && <pre className="raw-result">{JSON.stringify(responseData, null, 2)}</pre>}
           </div>
         </section>
       )}
+      {source && responseData && <RecognitionResult data={responseData} />}
     </main>
   );
 }

@@ -13,6 +13,7 @@ from openai import APIConnectionError, APIStatusError, APITimeoutError, Authenti
 from openai import BadRequestError, NotFoundError, RateLimitError
 from pydantic import ValidationError
 
+from python.markdown import render_markdown
 from python.schema import PageResult
 
 
@@ -138,6 +139,7 @@ def recognize(filename: str, mime_type: str, data: bytes, page_number: int) -> d
         "Формулы записывай в LaTeX без знаков $. Таблицы представляй как массив строк rows: "
         "каждая строка содержит текстовые ячейки; has_header показывает наличие заголовка. "
         "Для элементов вне таблицы rows и has_header должны быть null. "
+        "В document.language укажи краткий код языка BCP 47, например ru; если язык неясен, und. "
         "Дай непустой список элементов с уникальными id element_001, element_002 и последовательным order от 1."
     )
 
@@ -180,6 +182,7 @@ def recognize(filename: str, mime_type: str, data: bytes, page_number: int) -> d
     usage = response.usage
     return {
         "result": result.model_dump(),
+        "markdown": render_markdown(result),
         "model": model,
         "usage": {
             "input_tokens": usage.input_tokens,

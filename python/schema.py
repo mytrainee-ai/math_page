@@ -1,8 +1,9 @@
 """Structured response and additional validation for one textbook page."""
 
+import re
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 ElementType = Literal[
@@ -15,6 +16,20 @@ class DocumentInfo(BaseModel):
     filename: str
     page_number: int
     language: str
+
+    @field_validator("language")
+    @classmethod
+    def normalize_language(cls, value: str) -> str:
+        language = value.strip().lower().replace("_", "-")
+        aliases = {
+            "russian": "ru", "русский": "ru", "русский язык": "ru",
+            "english": "en", "английский": "en",
+            "ukrainian": "uk", "украинский": "uk",
+        }
+        normalized = aliases.get(language, language)
+        if re.fullmatch(r"[a-z]{2,3}(?:-[a-z0-9]{2,8})*", normalized):
+            return normalized
+        return "und"
 
 
 class PageElement(BaseModel):
