@@ -85,4 +85,7 @@ class handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+
+    load_dotenv()
     HTTPServer(("127.0.0.1", 8000), handler).serve_forever()
