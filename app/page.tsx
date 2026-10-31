@@ -6,6 +6,8 @@ import RecognitionResult, { isRecognitionResponse, type RecognitionResponse } fr
 
 const MAX_FILE_BYTES = 3 * 1024 * 1024;
 const MAX_PDF_PAGES = 100;
+const TEST_FILE_URL = "/demo/page_005.jpg";
+const TEST_FILE_NAME = "page_005.jpg";
 
 type Source = {
   file: File;
@@ -52,6 +54,7 @@ export default function Home() {
   const [requestError, setRequestError] = useState("");
   const [responseData, setResponseData] = useState<RecognitionResponse | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<PDFDocumentProxy | null>(null);
   const pdfTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
   const imageUrlRef = useRef<string | null>(null);
@@ -111,8 +114,7 @@ export default function Home() {
     };
   }, [source, pageNumber]);
 
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  function resetSelectedFile() {
     const selection = ++selectionRef.current;
     requestRef.current += 1;
     abortRef.current?.abort();
@@ -130,12 +132,16 @@ export default function Home() {
     if (pdfTaskRef.current) void pdfTaskRef.current.destroy();
     pdfRef.current = null;
     pdfTaskRef.current = null;
-    if (!file) return;
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    return selection;
+  }
 
+  async function loadFile(file: File, selection: number, clearInput?: () => void) {
+    if (selection !== selectionRef.current) return;
     const validationError = fileError(file);
     if (validationError) {
       setError(validationError);
-      event.target.value = "";
+      clearInput?.();
       return;
     }
 
@@ -187,7 +193,33 @@ export default function Home() {
             ? message
             : "Файл повреждён или не читается. Выберите другой файл.",
       );
-      event.target.value = "";
+      clearInput?.();
+    } finally {
+      if (selection === selectionRef.current) setLoading(false);
+    }
+  }
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    const selection = resetSelectedFile();
+    if (file) await loadFile(file, selection, () => { input.value = ""; });
+  }
+
+  async function handleTestFile() {
+    const selection = resetSelectedFile();
+    setLoading(true);
+    try {
+      const response = await fetch(TEST_FILE_URL);
+      if (!response.ok) throw new Error("Тестовый файл недоступен.");
+      const blob = await response.blob();
+      const file = new File([blob], TEST_FILE_NAME, { type: "image/jpeg" });
+      if (selection !== selectionRef.current) return;
+      await loadFile(file, selection);
+    } catch {
+      if (selection === selectionRef.current) {
+        setError("Не удалось загрузить встроенную тестовую страницу. Попробуйте выбрать файл вручную.");
+      }
     } finally {
       if (selection === selectionRef.current) setLoading(false);
     }
@@ -259,15 +291,28 @@ export default function Home() {
             <p>JPG, PNG или PDF · до 3 МБ · для PDF не более 100 страниц</p>
           </div>
         </div>
-        <label className="file-picker">
-          <span>{source ? "Выбрать другой файл" : "Выбрать файл"}</span>
-          <input
-            type="file"
-            accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-            onChange={handleFileChange}
-            aria-label="Выбрать изображение или PDF"
-          />
-        </label>
+        <div className="upload-actions">
+          <label className="file-picker">
+            <span>{source ? "Выбрать другой файл" : "Выбрать файл"}</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+              onChange={handleFileChange}
+              disabled={loading}
+              aria-label="Выбрать изображение или PDF"
+            />
+          </label>
+          <button
+            type="button"
+            className="test-button"
+            onClick={handleTestFile}
+            disabled={loading}
+            aria-label="Загрузить тестовую страницу"
+          >
+            Тест
+          </button>
+        </div>
         {loading && <p className="status" role="status">Проверяем файл…</p>}
         {error && <p className="error" role="alert">{error}</p>}
       </section>
